@@ -84,6 +84,14 @@ type CP struct {
 	IssueDate string  `json:"issueDate"`
 }
 
+type Document struct {
+	DocName    	string  `json:"docName"`
+	DocDesc    	string  `json:"docDesc"`
+	DocOwner		string  `json:"docOwner"`
+	Docverifier	string  `json:"docverifier"`
+}
+
+
 type Account struct {
 	ID          string  `json:"id"`
 	Prefix      string  `json:"prefix"`
@@ -203,6 +211,92 @@ func (t *SimpleChaincode) createAccount(stub shim.ChaincodeStubInterface, args [
 
 }
 
+
+func (t *SimpleChaincode) createDocument(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	fmt.Println("Creating document, staring...")
+
+	// Obtain the username to associate with the account
+	if len(args) != 4 {
+		fmt.Println("Error obtaining 5 arguments")
+		return nil, errors.New("createDocment accepts 5 arguments....")
+	}
+	docName := args[0]
+	docDesc := args[1]
+	docOwner := args[2]
+	docverifier := "not verified yet"
+	docHash := args[3]
+
+	// Build an account object for the user
+	var document = Document{DocName: docName, DocDesc: docDesc, DocOwner: docOwner, Docverifier: docverifier}
+	docBytes, err := json.Marshal(&document)
+	if err != nil {
+		fmt.Println("error creating document" + docName)
+		return nil, errors.New("Error creating document object: " + docName)
+	}
+	fmt.Println("before putting state...")
+	err = stub.PutState(docHash, docBytes)
+
+	if err == nil {
+					fmt.Println("Document object created:" + docName)
+					return nil, nil
+	} else {
+					fmt.Println("failed to create document object for: " + docName)
+					return nil, errors.New("failed to create document object for: " + docName)
+				}
+}
+
+
+func (t *SimpleChaincode) updateDocument(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	fmt.Println("Updating document, staring...")
+
+	if len(args) != 2 {
+		fmt.Println("Error obtaining 2 arguments")
+		return nil, errors.New("createDocment accepts 2 arguments....")
+	}
+	docHash := args[0]
+	docVerifier := args[1]
+	fmt.Println("Attempting to get state of any existing account for " + docHash)
+	existingBytes, err := stub.GetState(docHash)
+	if err == nil {
+
+		var docOriginal Document
+		err = json.Unmarshal(existingBytes, &docOriginal)
+		if err != nil {
+			fmt.Println("Error unmarshalling existing doc with hash: " + docHash)
+			return nil, errors.New("Error unmarshalling existing doc with hash: " + docHash)
+		}
+
+		docName := docOriginal.DocName
+		docDesc := docOriginal.DocDesc
+		docOwner := docOriginal.DocOwner
+		docVerifier := docVerifier
+
+
+		var document = Document{DocName: docName, DocDesc: docDesc, DocOwner: docOwner, Docverifier: docVerifier}
+
+		docBytes, err := json.Marshal(&document)
+		if err != nil {
+			fmt.Println("error creating document" + docName)
+			return nil, errors.New("Error Updating document object: " + docName)
+		}
+		fmt.Println("before putting state...")
+		err = stub.PutState(docHash, docBytes)
+
+		if err == nil {
+						fmt.Println("Document object updated:" + document.DocName)
+						return nil, nil
+		} else {
+				fmt.Println("failed to update document object for: " + document.DocName)
+						return nil, errors.New("failed to update document object for: " + document.DocName)
+					}
+	}
+
+	fmt.Println("Error getting document with hash: " + docHash)
+	return nil, errors.New("Error getting document with hash: " + docHash)
+
+}
+
+
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	fmt.Println("Init firing. Function will be ignored: " + function)
 
@@ -243,7 +337,7 @@ func (t *SimpleChaincode) issueCommercialPaper(stub shim.ChaincodeStubInterface,
 					"company": "company4",
 					"quantity": 2
 				}
-			],				
+			],
 			"issuer":"company2",
 			"issueDate":"1456161763790"  (current time in milliseconds as a string)
 
@@ -468,6 +562,23 @@ func GetCompany(companyID string, stub shim.ChaincodeStubInterface) (Account, er
 	}
 
 	return company, nil
+}
+
+func GetDocument(docHash string, stub shim.ChaincodeStubInterface) (Document, error) {
+	var document Document
+	docBytes, err := stub.GetState(docHash)
+	if err != nil {
+		fmt.Println("Document object not found " + docHash)
+		return document, errors.New("Document object not found " + docHash)
+	}
+
+	err = json.Unmarshal(docBytes, &document)
+	if err != nil {
+		fmt.Println("Error unmarshalling document object " + docHash)
+		return document, errors.New("Error unmarshalling document object " + docHash)
+	}
+
+	return document, nil
 }
 
 
@@ -699,6 +810,21 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 			fmt.Println("All success, returning the company")
 			return companyBytes, nil
 		}
+	} else if function == "GetDocument" {
+		fmt.Println("Getting the company")
+		doc, err := GetDocument(args[0], stub)
+		if err != nil {
+			fmt.Println("Error from GetDocument")
+			return nil, err
+		} else {
+			docBytes, err1 := json.Marshal(&doc)
+			if err1 != nil {
+				fmt.Println("Error marshalling the document")
+				return nil, err1
+			}
+			fmt.Println("All success, returning the document")
+			return docBytes, nil
+		}
 	} else {
 		fmt.Println("Generic Query call")
 		bytes, err := stub.GetState(args[0])
@@ -713,6 +839,7 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	}
 }
 
+
 func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function string, args []string) ([]byte, error) {
 	fmt.Println("Invoke running. Function: " + function)
 
@@ -722,6 +849,10 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface, function stri
 		return t.transferPaper(stub, args)
 	} else if function == "createAccounts" {
 		return t.createAccounts(stub, args)
+	} else if function == "createDocument" {
+		return t.createDocument(stub, args)
+	} else if function == "updateDocument" {
+		return t.updateDocument(stub, args)
 	} else if function == "createAccount" {
 		return t.createAccount(stub, args)
 	}

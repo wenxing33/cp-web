@@ -108,8 +108,8 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 server.timeout = 240000;
 
 // Track application bluemix deployments.  All we're tracking is number of deployments.
-console.log(TAG, '---- Tracking Deployment');
-require('cf-deployment-tracker-client').track();
+//console.log(TAG, '---- Tracking Deployment');
+//require('cf-deployment-tracker-client').track();
 
 // =====================================================================================================================
 // 												Network credentials
@@ -134,12 +134,12 @@ try {
 
     var peers = manual.peers;
     for (var i in peers) {
-        peerURLs.push('grpcs://' + peers[i].discovery_host + ':' + peers[i].discovery_port);
+        peerURLs.push('grpc://' + peers[i].discovery_host + ':' + peers[i].discovery_port);
         peerHosts.push('' + peers[i].discovery_host);
     }
     var ca = manual.ca;
     for (var i in ca) {
-        caURL = 'grpcs://' + ca[i].url;
+        caURL = 'grpc://' + ca[i].url;
     }
     console.log(TAG, 'loading hardcoded peers');
     users = null;																			//users are only found if security is on
@@ -184,7 +184,7 @@ if (process.env.VCAP_SERVICES) {
                         users = servicesObject[i][0].credentials.users;
                         //TODO extract registrar from users once user list has been updated to new SDK
                     }
-                    else users = null;													//no security	
+                    else users = null;													//no security
                 }
                 else ca = null;
                 break;
@@ -301,7 +301,7 @@ function start_websocket_server(error, d) {
                     '\n  message: ' + msg + ')');
             }
 
-            var request = https.request(options, function (resp) {
+            var request = http.request(options, function (resp) {
                 var str = '', chunks = 0;
                 resp.setEncoding('utf8');
                 resp.on('data', function (chunk) {                                                            //merge chunks of request

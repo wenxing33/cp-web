@@ -20,6 +20,7 @@ var TAG = 'web_socket:';
 // ==================================
 var async = require('async');
 var https = require('https');
+var http = require('http');
 var peers = null;
 var chaincodeHelper;
 
@@ -143,7 +144,7 @@ module.exports.process_msg = function (socket, data) {
         };
 
         console.log(TAG, 'Requesting chain stats from:', options.host + ':' + options.port);
-        var request = https.request(options, function (resp) {
+        var request = http.request(options, function (resp) {
             var str = '', chunks = 0;
 
             resp.setEncoding('utf8');
@@ -212,7 +213,7 @@ module.exports.process_msg = function (socket, data) {
                     cb(null);
                 }
 
-                var request = https.request(options, function (resp) {
+                var request = http.request(options, function (resp) {
                     var str = '', chunks = 0;
                     resp.setEncoding('utf8');
                     resp.on('data', function (chunk) {															//merge chunks of request

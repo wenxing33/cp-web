@@ -50,9 +50,9 @@ else {
     console.log(TAG + 'Assuming this app is running on localhost.');
     exports.SERVER = {
         HOST: 'localhost',
-        PORT: 3000,
+        PORT: 5002,
         DESCRIPTION: 'Localhost',
-        EXTURI: process.env.EXTURI || 'localhost:3000'
+        EXTURI: process.env.EXTURI || 'localhost:5002'
     };
 }
 
@@ -62,4 +62,3 @@ exports.SERVER.vcap_app = vcap_app;
 ////////////////////////////////////////     Common     ////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////
 exports.DEBUG = vcap_app;
-
